@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMARTCAB SAP 4 Konfigurátor</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Barlow', Arial, sans-serif; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    button:focus { outline: none; }
+    .fadeUp { animation: fadeUp 0.35s ease; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #E7F5F9; }
+    ::-webkit-scrollbar-thumb { background: #0033A0; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+// ── Design tokens ──────────────────────────────────────────────────────────
+const PLP_BLUE   = "#0033A0";
+const RED_ACCENT = "#E4002B";
+const LIGHT_BG   = "#E7F5F9";
+const CARD_BG    = "#ffffff";
+const BORDER     = "#e0e0e0";
+const DARK_GRAY  = "#333333";
+const MID_GRAY   = "#888888";
+
+// ── Data ────────────────────────────────────────────────────────────────────
+
+const CABINET_SIZES = [
+  { code: "A", sku: "SAP2677", label: "1350 × 700 × 700 mm", detail: "max. 26U — šířka 700 mm", w: "700" },
+  { code: "B", sku: "SAP2688", label: "1350 × 800 × 800 mm", detail: "max. 26U — šířka 800 mm", w: "800" },
+  { code: "C", sku: "SAP3777", label: "1850 × 700 × 700 mm", detail: "max. 37U — šířka 700 mm", w: "700" },
+  { code: "D", sku: "SAP3788", label: "1850 × 800 × 800 mm", detail: "max. 37U — šířka 800 mm", w: "800" },
+];
+
+const BASES = [
+  { code: "A", label: "150 mm", detail: "výška základny 150 mm", skuMap: { "700": "Z15077", "800": "Z15088" } },
+  { code: "B", label: "250 mm", detail: "výška základny 250 mm", skuMap: { "700": "Z25077", "800": "Z25088" } },
+  { code: "N", label: "Žádná základna", detail: "", sku: null },
+];
+
+const VERT_RAILS = [
+  { code: "A", sku: "VL1x19", label: "19\" vertikální lišty",  detail: "1 pár" },
+  { code: "B", sku: "VL2x19", label: "19\" vertikální lišty",  detail: "2 páry" },
+  { code: "C", sku: "VL1x21", label: "21\" vertikální lišty",  detail: "1 pár" },
+  { code: "D", sku: "VL2x21", label: "21\" vertikální lišty",  detail: "2 páry" },
+  { code: "E", sku: "VL1xET", label: "ETSI vertikální lišty", detail: "1 pár" },
+  { code: "F", sku: "VL2xET", label: "ETSI vertikální lišty", detail: "2 páry" },
+  { code: "N", sku: null,     label: "Žádné lišty",           detail: "" },
+];
+
+const CABLE_LEFT = [
+  { code: "A", sku: "C17L",  label: "Průchodka C17",  detail: "9× 18–30/10–14 mm, 4× 10–15 mm, 4× 5–10 mm" },
+  { code: "B", sku: "C25L",  label: "Průchodka C25",  detail: "1× 20–26/12–15 mm, 16× 8–14/7–10 mm, 4× 14–20/5–10 mm, 4× 5–7 mm" },
+  { code: "C", sku: "C50L",  label: "Průchodka C50",  detail: "49× 7–13 mm, 1× 15–25 mm" },
+  { code: "D", sku: "KC28L", label: "Průchodka KC28", detail: "18× 6–13 mm, 6× 13–28 mm, 4× 3–11 mm" },
+  { code: "N", sku: null,    label: "Žádné průchodky", detail: "" },
+];
+
+const CABLE_RIGHT = [
+  { code: "A", sku: "C17P",  label: "Průchodka C17",  detail: "9× 18–30/10–14 mm, 4× 10–15 mm, 4× 5–10 mm" },
+  { code: "B", sku: "C25P",  label: "Průchodka C25",  detail: "1× 20–26/12–15 mm, 16× 8–14/7–10 mm, 4× 14–20/5–10 mm, 4× 5–7 mm" },
+  { code: "C", sku: "C50P",  label: "Průchodka C50",  detail: "49× 7–13 mm, 1× 15–25 mm" },
+  { code: "D", sku: "KC28P", label: "Průchodka KC28", detail: "18× 6–13 mm, 6× 13–28 mm, 4× 3–11 mm" },
+  { code: "N", sku: null,    label: "Žádné průchodky", detail: "" },
+];
+
+const HEATERS = [
+  { code: "A", sku: "TT150", label: "Topné těleso 150 W", detail: "230 V AC" },
+  { code: "B", sku: "TT250", label: "Topné těleso 250 W", detail: "230 V AC" },
+  { code: "C", sku: "TT400", label: "Topné těleso 400 W", detail: "230 V AC" },
+  { code: "N", sku: null,    label: "Žádné topné těleso", detail: "" },
+];
+
+const THERMOSTATS = [
+  { code: "A", sku: "TO60", label: "Otevřený termostat",           detail: "0–60 °C, vypne topení při překročení teploty" },
+  { code: "B", sku: "HGR",  label: "Mechanický hygrostat MFR 012", detail: "zapne topení při překročení rel. vlhkosti" },
+  { code: "C", sku: "THGR", label: "Elektronický termo-hygrostat", detail: "ETF012, 0–60 °C, 50–90 % RV" },
+  { code: "D", sku: "MICS", label: "Inteligentní řízení MICS",     detail: "řízení topení pomocí systému MICS" },
+  { code: "N", sku: null,   label: "Žádný termostat",              detail: "nelze vybrat, pokud je vybráno Topné těleso" },
+];
+
+const HEATED_SHELF = [
+  { code: "A", sku: "TK100", label: "Police s vyhřívací podložkou", detail: "100 W 230 V AC, TL 30 °C" },
+  { code: "N", sku: null,    label: "Žádná police",                 detail: "" },
+];
+
+const COOLING = [
+  { group: "Ventilátor 230 V + termostat 0–60 °C", options: [
+    { code: "A", sku: "V150ACC",   label: "Ventilátor — nejnižší výkon",  detail: "~150 m³/h, 230 V AC" },
+    { code: "B", sku: "V400ACC",   label: "Ventilátor — střední výkon",   detail: "~400 m³/h, 230 V AC" },
+    { code: "C", sku: "V1200ACC",  label: "Ventilátor — nejvyšší výkon",  detail: "~1200 m³/h, 230 V AC" },
+  ]},
+  { group: "Klimatizace 230 V", options: [
+    { code: "D", sku: "1500AC230", label: "Klimatizační jednotka 1500 W", detail: "230 V AC" },
+  ]},
+  { group: "Ventilátory s inteligentním řízením MICS", options: [
+    { code: "E", sku: "MICS BASIC EC", label: "MICS BASIC EC", detail: "230 V AC, 0–600 m³/h" },
+    { code: "F", sku: "MICS PRO AC",   label: "MICS PRO AC",   detail: "230 V AC, 0–600 m³/h" },
+    { code: "G", sku: "MICS PRO DC",   label: "MICS PRO DC",   detail: "48 V DC, 0–600 m³/h" },
+  ]},
+  { group: "Bez chlazení", options: [
+    { code: "N", sku: null, label: "Žádné chlazení", detail: "" },
+  ]},
+];
+
+const FIX_BRACKET = [
+  { code: "A", sku: "FK2X", label: "Fixační konzole",        detail: "sada 2 ks" },
+  { code: "N", sku: null,   label: "Žádné fixační konzole",  detail: "" },
+];
+
+const DOOR_SWITCH = [
+  { code: "B", sku: "2DS",  label: "Dveřní spínač × 2 s konzolí",      detail: "" },
+  { code: "N", sku: null,   label: "Žádná konzole s dveřními spínači",  detail: "" },
+];
+
+const LED_LIGHT = [
+  { code: "C", sku: "LED24240", label: "LED osvětlení",   detail: "24–240 V AC/DC" },
+  { code: "N", sku: null,       label: "Žádné LED osvětlení", detail: "" },
+];
+
+const UNDERGROUND_BASE = [
+  { code: "D", sku: "PZ7070", label: "Podzemní základna 700 × 700 mm", detail: "" },
+  { code: "E", sku: "PZ8080", label: "Podzemní základna 800 × 800 mm", detail: "" },
+  { code: "N", sku: null,     label: "Žádná podzemní základna",        detail: "" },
+];
+
+// ── PDF font cache ────────────────────────────────────────────────────────────
+let _pdfFont = null;
+
+async function loadPdfFont() {
+  if (_pdfFont) return _pdfFont;
+  const res = await fetch("https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf");
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  const chunks = [];
+  for (let i = 0; i < bytes.length; i += 8192) {
+    chunks.push(String.fromCharCode(...bytes.subarray(i, i + 8192)));
+  }
+  _pdfFont = btoa(chunks.join(""));
+  return _pdfFont;
+}
+
+// ── PDF generation ──────────────────────────────────────────────────────────
+async function generatePDF(bom) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  // Load Unicode font (Czech support)
+  let fontName = "helvetica";
+  try {
+    const b64 = await loadPdfFont();
+    doc.addFileToVFS("DejaVuSans.ttf", b64);
+    doc.addFont("DejaVuSans.ttf", "DejaVuSans", "normal");
+    doc.addFont("DejaVuSans.ttf", "DejaVuSans", "bold");
+    fontName = "DejaVuSans";
+  } catch(e) { /* use helvetica fallback */ }
+
+  const t = (s) => s || "";
+  const L = 15; // left margin
+
+  // ── 1. Blue header bar ──
+  doc.setFillColor(0, 51, 160);
+  doc.rect(0, 0, 210, 18, "F");
+
+  // PLP circle logo — white outline + white text on blue (top right)
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(1.2);
+  doc.circle(196, 9, 7, "S");
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text("PLP", 196, 10.5, { align: "center" });
+
+  // Title: "SMARTCAB SAP 4" bold + "KONFIGURÁTOR" light — same size, same line
+  doc.setFontSize(13);
+  doc.setFont(fontName, "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text("SMARTCAB SAP 4", L, 11.5);
+  const bw = doc.getTextWidth("SMARTCAB SAP 4");
+  doc.setFont(fontName, "normal");
+  doc.setTextColor(180, 210, 255);
+  doc.text(" KONFIGURÁTOR", L + bw, 11.5);
+
+  // ── 2. Red accent line below header ──
+  doc.setFillColor(228, 0, 43);
+  doc.rect(0, 18, 210, 0.8, "F");
+
+  // ── 3. Dark navy info block ──
+  doc.setFillColor(0, 30, 102);
+  doc.rect(L, 24, 180, 20, "F");
+
+  doc.setFontSize(6);
+  doc.setFont(fontName, "bold");
+  doc.setTextColor(228, 0, 43);
+  doc.text("KONFIGURACE PRODUKTU", L + 4, 30);
+
+  doc.setFontSize(11);
+  doc.setFont(fontName, "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text("SMARTCAB SAP 4 — VENKOVNÍ ROZVÁDĚČOVÁ SKŘÍŇ", L + 4, 39);
+
+  // ── 4. Red separator line ──
+  doc.setFillColor(228, 0, 43);
+  doc.rect(L, 48, 180, 0.5, "F");
+
+  // ── 5. Section label ──
+  let y = 56;
+  doc.setFontSize(8);
+  doc.setFont(fontName, "bold");
+  doc.setTextColor(0, 51, 160);
+  doc.text("SOUHRN KONFIGURACE", L, y);
+  y += 6;
+
+  // ── 6. Table ──
+  const tableBody = [];
+  const sectionHeaderIndexes = [];
+
+  bom.forEach(section => {
+    if (section.items.length === 0) return;
+    sectionHeaderIndexes.push(tableBody.length);
+    tableBody.push([{ content: t(section.label).toUpperCase(), colSpan: 3 }]);
+    section.items.forEach(item => {
+      tableBody.push([t(item.name), t(item.sku) || "—", item.qty || "1"]);
+    });
+  });
+
+  doc.autoTable({
+    startY: y,
+    head: [["POLOŽKA", "OBJ. KÓD", "MNOŽSTVÍ"]],
+    body: tableBody,
+    margin: { left: L, right: L },
+    headStyles: {
+      fillColor: [232, 245, 249], textColor: [100, 100, 100],
+      fontStyle: "bold", fontSize: 7, halign: "left",
+      font: fontName, cellPadding: { top: 3, bottom: 3, left: 4, right: 2 },
+    },
+    bodyStyles: { fontSize: 8, textColor: [51, 51, 51], font: fontName,
+      cellPadding: { top: 3, bottom: 3, left: 4, right: 2 } },
+    alternateRowStyles: { fillColor: [248, 252, 255] },
+    columnStyles: {
+      0: { cellWidth: 114 },
+      1: { cellWidth: 48, font: "courier" },
+      2: { cellWidth: 18, halign: "center" },
+    },
+    tableLineColor: [228, 0, 43],
+    tableLineWidth: 0.3,
+    theme: "grid",
+    didParseCell: function(data) {
+      if (sectionHeaderIndexes.includes(data.row.index) && data.section === "body") {
+        data.cell.styles.fillColor = [0, 51, 160];
+        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.fontSize = 8;
+        data.cell.styles.font = fontName;
+      }
+    },
+  });
+
+  // ── 7. Footer — blue bar with page number ──
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    // thin red line above footer
+    doc.setFillColor(228, 0, 43);
+    doc.rect(0, 284, 210, 0.8, "F");
+    // blue footer bar
+    doc.setFillColor(0, 51, 160);
+    doc.rect(0, 284.8, 210, 12.2, "F");
+    doc.setFontSize(7);
+    doc.setFont(fontName, "normal");
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Stránka ${i} / ${pageCount}`, 105, 292, { align: "center" });
+  }
+
+  doc.save("SMARTCAB-SAP4-konfigurace.pdf");
+}
+
+// ── Helper: build BOM from state ────────────────────────────────────────────
+function buildBOM(sel) {
+  const cabinetSize = CABINET_SIZES.find(x => x.code === sel.cabinetSize);
+  const w = cabinetSize ? cabinetSize.w : "700";
+
+  const getBase = () => {
+    if (!sel.base || sel.base === "N") return null;
+    const b = BASES.find(x => x.code === sel.base);
+    return b ? { name: `Základna ${b.label}`, sku: b.skuMap[w] } : null;
+  };
+
+  const pick = (arr, code, namePrefix) => {
+    if (!code || code === "N") return null;
+    const item = arr.find(x => x.code === code);
+    return item ? { name: `${namePrefix}${item.label}${item.detail ? " — " + item.detail : ""}`, sku: item.sku } : null;
+  };
+
+  const coolingFlat = COOLING.flatMap(g => g.options);
+  const coolItem = sel.cooling && sel.cooling !== "N"
+    ? coolingFlat.find(x => x.code === sel.cooling) : null;
+
+  return [
+    {
+      label: "Rozváděčová skříň",
+      items: [
+        cabinetSize ? { name: `Skříň ${cabinetSize.label} — ${cabinetSize.detail}`, sku: cabinetSize.sku, qty: "1" } : null,
+        getBase() ? { ...getBase(), qty: "1" } : null,
+        pick(VERT_RAILS, sel.vertRails, "Vert. lišty — ") ? { ...pick(VERT_RAILS, sel.vertRails, "Vert. lišty — "), qty: "1" } : null,
+        pick(CABLE_LEFT,  sel.cableLeft,  "Lev. kabel. vstupy — ") ? { ...pick(CABLE_LEFT,  sel.cableLeft,  "Lev. kabel. vstupy — "), qty: "1" } : null,
+        pick(CABLE_RIGHT, sel.cableRight, "Prav. kabel. vstupy — ") ? { ...pick(CABLE_RIGHT, sel.cableRight, "Prav. kabel. vstupy — "), qty: "1" } : null,
+      ].filter(Boolean),
+    },
+    {
+      label: "Topení",
+      items: [
+        pick(HEATERS,     sel.heater,      "") ? { ...pick(HEATERS,     sel.heater,      ""), qty: "1" } : null,
+        pick(THERMOSTATS, sel.thermostat,  "Termostat — ") ? { ...pick(THERMOSTATS, sel.thermostat, "Termostat — "), qty: "1" } : null,
+        pick(HEATED_SHELF,sel.heatedShelf, "") ? { ...pick(HEATED_SHELF,sel.heatedShelf, ""), qty: "1" } : null,
+      ].filter(Boolean),
+    },
+    {
+      label: "Chlazení",
+      items: coolItem
+        ? [{ name: coolItem.label + (coolItem.detail ? " — " + coolItem.detail : ""), sku: coolItem.sku, qty: "1" }]
+        : [],
+    },
+    {
+      label: "Příslušenství",
+      items: [
+        pick(FIX_BRACKET,      sel.fixBracket,      "") ? { ...pick(FIX_BRACKET,      sel.fixBracket,      ""), qty: "1" } : null,
+        pick(DOOR_SWITCH,      sel.doorSwitch,      "") ? { ...pick(DOOR_SWITCH,      sel.doorSwitch,      ""), qty: "1" } : null,
+        pick(LED_LIGHT,        sel.ledLight,        "") ? { ...pick(LED_LIGHT,        sel.ledLight,        ""), qty: "1" } : null,
+        pick(UNDERGROUND_BASE, sel.undergroundBase, "") ? { ...pick(UNDERGROUND_BASE, sel.undergroundBase, ""), qty: "1" } : null,
+      ].filter(Boolean),
+    },
+  ];
+}
+
+// ── UI Components ────────────────────────────────────────────────────────────
+
+function SectionLabel({ num, text }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "10px",
+      marginBottom: "20px", paddingBottom: "12px",
+      borderBottom: `2px solid ${RED_ACCENT}` }}>
+      <span style={{ color: RED_ACCENT, fontWeight: "700", fontSize: "13px",
+        letterSpacing: "2px", fontFamily: "monospace" }}>
+        {String(num).padStart(2, "0")} —
+      </span>
+      <span style={{ color: PLP_BLUE, fontWeight: "700", fontSize: "13px",
+        letterSpacing: "2px", textTransform: "uppercase", fontFamily: "monospace" }}>
+        {text}
+      </span>
+    </div>
+  );
+}
+
+function SubLabel({ text }) {
+  return (
+    <div style={{ fontSize: "11px", fontWeight: "700", color: MID_GRAY,
+      letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "10px",
+      marginTop: "20px" }}>
+      {text}
+    </div>
+  );
+}
+
+function OptionCard({ item, selected, disabled, onSelect }) {
+  const active = selected === item.code;
+  const dim = disabled && !active;
+  return (
+    <button
+      onClick={() => !disabled && onSelect(item.code)}
+      style={{
+        padding: "12px 14px", cursor: disabled ? "not-allowed" : "pointer",
+        display: "flex", flexDirection: "column", gap: "3px",
+        fontFamily: "inherit", textAlign: "left", width: "100%",
+        background: active ? PLP_BLUE : (dim ? "#f5f5f5" : CARD_BG),
+        border: active ? `2px solid ${PLP_BLUE}` : `2px solid ${dim ? "#ddd" : BORDER}`,
+        transition: "all 0.15s",
+        opacity: dim ? 0.5 : 1,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+        <span style={{ fontWeight: "700", fontSize: "12px",
+          color: active ? "white" : DARK_GRAY }}>
+          {item.label}
+        </span>
+        {item.sku && (
+          <span style={{
+            fontSize: "10px", fontWeight: "700", letterSpacing: "1px",
+            fontFamily: "monospace", padding: "2px 7px", flexShrink: 0,
+            background: active ? "rgba(255,255,255,0.2)" : LIGHT_BG,
+            color: active ? "white" : PLP_BLUE,
+          }}>
+            {item.sku}
+          </span>
+        )}
+      </div>
+      {item.detail && (
+        <span style={{ fontSize: "10px", color: active ? "rgba(255,255,255,0.75)" : MID_GRAY }}>
+          {item.detail}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function OptionGrid({ items, selected, onSelect, disabledCodes = [] }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "8px" }}>
+      {items.map(item => (
+        <OptionCard
+          key={item.code}
+          item={item}
+          selected={selected}
+          disabled={disabledCodes.includes(item.code)}
+          onSelect={onSelect}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Step indicator ──────────────────────────────────────────────────────────
+const STEPS = [
+  { num: 1, label: "Skříň" },
+  { num: 2, label: "Topení" },
+  { num: 3, label: "Chlazení" },
+  { num: 4, label: "Příslušenství" },
+];
+
+function StepIndicator({ currentStep }) {
+  return (
+    <div style={{ background: CARD_BG, borderBottom: `1px solid ${BORDER}`, padding: "0 24px" }}>
+      <div style={{ maxWidth: "960px", margin: "0 auto", display: "flex", alignItems: "stretch" }}>
+        {STEPS.map((step) => {
+          const done   = currentStep > step.num;
+          const active = currentStep === step.num;
+          const future = currentStep < step.num;
+          return (
+            <div key={step.num} style={{
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+              gap: "8px", padding: "14px 8px",
+              borderBottom: active ? `3px solid ${PLP_BLUE}` : future ? "3px solid transparent" : `3px solid ${RED_ACCENT}`,
+              background: active ? LIGHT_BG : "transparent",
+            }}>
+              <div style={{
+                width: "22px", height: "22px", borderRadius: "50%", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontWeight: "700", fontSize: "11px", fontFamily: "monospace",
+                background: active ? PLP_BLUE : done ? RED_ACCENT : BORDER,
+                color: (active || done) ? "white" : MID_GRAY,
+              }}>
+                {done ? "✓" : step.num}
+              </div>
+              <span style={{
+                fontWeight: "700", fontSize: "11px", letterSpacing: "1px",
+                textTransform: "uppercase", fontFamily: "monospace",
+                color: active ? PLP_BLUE : done ? DARK_GRAY : MID_GRAY,
+              }}>
+                {step.label}
+              </span>
+            </div>
+          );
+        })}
+        <div style={{
+          flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+          gap: "8px", padding: "14px 8px",
+          borderBottom: currentStep === 5 ? `3px solid ${PLP_BLUE}` : "3px solid transparent",
+          background: currentStep === 5 ? LIGHT_BG : "transparent",
+        }}>
+          <div style={{
+            width: "22px", height: "22px", borderRadius: "50%", flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontWeight: "700", fontSize: "11px", fontFamily: "monospace",
+            background: currentStep === 5 ? PLP_BLUE : BORDER,
+            color: currentStep === 5 ? "white" : MID_GRAY,
+          }}>
+            ★
+          </div>
+          <span style={{
+            fontWeight: "700", fontSize: "11px", letterSpacing: "1px",
+            textTransform: "uppercase", fontFamily: "monospace",
+            color: currentStep === 5 ? PLP_BLUE : MID_GRAY,
+          }}>
+            Souhrn
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Navigation ──────────────────────────────────────────────────────────────
+function NavButtons({ step, onBack, onNext, onPDF, canNext }) {
+  return (
+    <div style={{
+      borderTop: `1px solid ${BORDER}`, background: CARD_BG,
+      padding: "16px 24px", position: "sticky", bottom: 0, zIndex: 10,
+    }}>
+      <div style={{ maxWidth: "960px", margin: "0 auto", display: "flex", justifyContent: "space-between", gap: "12px" }}>
+        <button
+          onClick={onBack}
+          style={{
+            padding: "13px 28px", background: "transparent",
+            border: `2px solid ${PLP_BLUE}`, color: PLP_BLUE,
+            cursor: "pointer", fontWeight: "700", fontSize: "11px",
+            letterSpacing: "2px", textTransform: "uppercase", fontFamily: "inherit",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = LIGHT_BG; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+        >
+          ← PŘEDCHOZÍ KROK
+        </button>
+        {step < 5 ? (
+          <button
+            onClick={onNext}
+            disabled={!canNext}
+            style={{
+              padding: "13px 32px",
+              background: canNext ? PLP_BLUE : BORDER,
+              color: canNext ? "white" : MID_GRAY,
+              border: "none", cursor: canNext ? "pointer" : "not-allowed",
+              fontWeight: "700", fontSize: "11px",
+              letterSpacing: "2px", textTransform: "uppercase", fontFamily: "inherit",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { if (canNext) e.currentTarget.style.background = "#00257a"; }}
+            onMouseLeave={e => { if (canNext) e.currentTarget.style.background = PLP_BLUE; }}
+          >
+            DALŠÍ KROK →
+          </button>
+        ) : (
+          <button
+            onClick={onPDF}
+            style={{
+              padding: "13px 32px", background: RED_ACCENT, color: "white",
+              border: "none", cursor: "pointer", fontWeight: "700", fontSize: "11px",
+              letterSpacing: "2px", textTransform: "uppercase", fontFamily: "inherit",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "#b8001f"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = RED_ACCENT; }}
+          >
+            ↓ STÁHNOUT PDF
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Step 1: Cabinet ──────────────────────────────────────────────────────────
+function Step1({ sel, setSel }) {
+  const cabinetW = (CABINET_SIZES.find(x => x.code === sel.cabinetSize) || {}).w || "700";
+
+  const basesWithSku = BASES.map(b => b.code === "N" ? b : {
+    ...b,
+    detail: `výška ${b.label}`,
+    sku: b.skuMap[cabinetW],
+  });
+
+  return (
+    <div style={{ animation: "fadeUp 0.35s ease" }}>
+      <SectionLabel num={1} text="Rozváděčová skříň" />
+
+      <SubLabel text="Velikost skříně *" />
+      <OptionGrid items={CABINET_SIZES} selected={sel.cabinetSize}
+        onSelect={v => setSel(s => ({ ...s, cabinetSize: v }))} />
+
+      <SubLabel text="Základna" />
+      <OptionGrid items={basesWithSku} selected={sel.base}
+        onSelect={v => setSel(s => ({ ...s, base: v }))} />
+
+      <SubLabel text="Vertikální lišty" />
+      <OptionGrid items={VERT_RAILS} selected={sel.vertRails}
+        onSelect={v => setSel(s => ({ ...s, vertRails: v }))} />
+
+      <SubLabel text="Levé kabelové vstupy" />
+      <OptionGrid items={CABLE_LEFT} selected={sel.cableLeft}
+        onSelect={v => setSel(s => ({ ...s, cableLeft: v }))} />
+
+      <SubLabel text="Pravé kabelové vstupy" />
+      <OptionGrid items={CABLE_RIGHT} selected={sel.cableRight}
+        onSelect={v => setSel(s => ({ ...s, cableRight: v }))} />
+    </div>
+  );
+}
+
+// ── Step 2: Heating ──────────────────────────────────────────────────────────
+function Step2({ sel, setSel }) {
+  const hasHeater = sel.heater !== "N" && sel.heater !== null;
+
+  return (
+    <div style={{ animation: "fadeUp 0.35s ease" }}>
+      <SectionLabel num={2} text="Topení" />
+
+      <SubLabel text="Topná tělesa" />
+      <OptionGrid
+        items={HEATERS}
+        selected={sel.heater}
+        onSelect={v => {
+          const newHeater = v;
+          let newThermo = sel.thermostat;
+          // if heater selected and thermostat is "N", reset to null (nothing chosen)
+          if (newHeater !== "N" && newThermo === "N") newThermo = null;
+          setSel(s => ({ ...s, heater: newHeater, thermostat: newThermo }));
+        }}
+      />
+
+      <SubLabel text="Termostat / Hygrostat — řízení topení" />
+      <OptionGrid
+        items={THERMOSTATS}
+        selected={sel.thermostat}
+        disabledCodes={hasHeater ? ["N"] : []}
+        onSelect={v => setSel(s => ({ ...s, thermostat: v }))}
+      />
+
+      <SubLabel text="Police s vyhřívací podložkou" />
+      <OptionGrid items={HEATED_SHELF} selected={sel.heatedShelf}
+        onSelect={v => setSel(s => ({ ...s, heatedShelf: v }))} />
+    </div>
+  );
+}
+
+// ── Step 3: Cooling ──────────────────────────────────────────────────────────
+function Step3({ sel, setSel }) {
+  return (
+    <div style={{ animation: "fadeUp 0.35s ease" }}>
+      <SectionLabel num={3} text="Chlazení" />
+      <p style={{ fontSize: "11px", color: MID_GRAY, marginBottom: "20px" }}>
+        Vyberte jednu možnost chlazení (nebo žádnou).
+      </p>
+      {COOLING.map(group => (
+        <div key={group.group}>
+          <SubLabel text={group.group} />
+          <OptionGrid
+            items={group.options}
+            selected={sel.cooling}
+            onSelect={v => setSel(s => ({ ...s, cooling: v }))}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Step 4: Accessories ──────────────────────────────────────────────────────
+function Step4({ sel, setSel }) {
+  return (
+    <div style={{ animation: "fadeUp 0.35s ease" }}>
+      <SectionLabel num={4} text="Příslušenství" />
+
+      <SubLabel text="Fixační konzole" />
+      <OptionGrid items={FIX_BRACKET} selected={sel.fixBracket}
+        onSelect={v => setSel(s => ({ ...s, fixBracket: v }))} />
+
+      <SubLabel text="Konzole s dveřními spínači" />
+      <OptionGrid items={DOOR_SWITCH} selected={sel.doorSwitch}
+        onSelect={v => setSel(s => ({ ...s, doorSwitch: v }))} />
+
+      <SubLabel text="LED osvětlení" />
+      <OptionGrid items={LED_LIGHT} selected={sel.ledLight}
+        onSelect={v => setSel(s => ({ ...s, ledLight: v }))} />
+
+      <SubLabel text="Podzemní základna" />
+      <OptionGrid items={UNDERGROUND_BASE} selected={sel.undergroundBase}
+        onSelect={v => setSel(s => ({ ...s, undergroundBase: v }))} />
+    </div>
+  );
+}
+
+// ── Step 5: Summary ──────────────────────────────────────────────────────────
+function Step5({ bom }) {
+  return (
+    <div style={{ animation: "fadeUp 0.35s ease" }}>
+      <SectionLabel num={5} text="Souhrn konfigurace" />
+      <p style={{ fontSize: "11px", color: MID_GRAY, marginBottom: "24px" }}>
+        Zkontrolujte konfiguraci a stáhněte PDF.
+      </p>
+
+      {bom.map(section => (
+        section.items.length > 0 && (
+          <div key={section.label} style={{
+            background: CARD_BG, border: `1px solid ${BORDER}`,
+            borderTop: `3px solid ${RED_ACCENT}`, marginBottom: "16px",
+          }}>
+            <div style={{
+              background: PLP_BLUE, padding: "10px 18px",
+              fontSize: "11px", fontWeight: "700", letterSpacing: "2px",
+              textTransform: "uppercase", fontFamily: "monospace", color: "white",
+            }}>
+              {section.label}
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: LIGHT_BG }}>
+                  <th style={thStyle}>Položka</th>
+                  <th style={{ ...thStyle, width: "140px" }}>Obj. kód</th>
+                  <th style={{ ...thStyle, width: "80px", textAlign: "center" }}>Množství</th>
+                </tr>
+              </thead>
+              <tbody>
+                {section.items.map((item, i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? CARD_BG : "#f8fcff" }}>
+                    <td style={tdStyle}>{item.name}</td>
+                    <td style={{ ...tdStyle, fontFamily: "monospace", color: PLP_BLUE, fontWeight: "700" }}>
+                      {item.sku || "—"}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: "center" }}>{item.qty || "1"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      ))}
+
+      {bom.every(s => s.items.length === 0) && (
+        <div style={{ textAlign: "center", padding: "40px", color: MID_GRAY, fontSize: "13px" }}>
+          Nebyla vybrána žádná položka.
+        </div>
+      )}
+    </div>
+  );
+}
+
+const thStyle = {
+  padding: "8px 14px", textAlign: "left", fontSize: "10px",
+  fontWeight: "700", letterSpacing: "1.5px", textTransform: "uppercase",
+  fontFamily: "monospace", color: MID_GRAY, borderBottom: `1px solid ${BORDER}`,
+};
+const tdStyle = {
+  padding: "9px 14px", fontSize: "11px", color: DARK_GRAY,
+  borderBottom: `1px solid ${BORDER}`,
+};
+
+// ── Intro step 0 ─────────────────────────────────────────────────────────────
+function Intro({ onStart }) {
+  return (
+    <div style={{ maxWidth: "960px", margin: "0 auto", padding: "48px 24px 60px" }}>
+      <div style={{ background: CARD_BG, border: `1px solid ${BORDER}`, borderTop: `3px solid ${PLP_BLUE}` }}>
+        <div style={{ background: PLP_BLUE, padding: "28px 32px" }}>
+          <h2 style={{ fontSize: "28px", fontWeight: "900", color: "white",
+            letterSpacing: "-0.5px" }}>
+            SMARTCAB SAP 4
+          </h2>
+        </div>
+
+        <div style={{ padding: "32px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+          {[
+            { label: "Krytí",   value: "IP55 / IK10" },
+            { label: "Materiál", value: "Aluzinkový plech 1,5 mm" },
+            { label: "Izolace", value: "30 mm vnitřní izolace" },
+            { label: "Povrch",  value: "Polyesterový prášk. lak, RAL 7035, UV ochrana" },
+            { label: "Normy",   value: "EN 60 529, EN 62 262, EN 62 208 ed.2:2012" },
+            { label: "Nasazení", value: "Energetika, Telekomunikace, Doprava, Security" },
+          ].map(f => (
+            <div key={f.label} style={{ padding: "14px 16px", background: LIGHT_BG,
+              borderLeft: `3px solid ${PLP_BLUE}` }}>
+              <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "1.5px",
+                textTransform: "uppercase", fontFamily: "monospace", color: MID_GRAY,
+                marginBottom: "4px" }}>
+                {f.label}
+              </div>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: DARK_GRAY }}>
+                {f.value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ padding: "0 32px 12px" }}>
+          <p style={{ fontSize: "11px", color: MID_GRAY, lineHeight: "1.7" }}>
+            Konfigurátor vás provede výběrem ve 4 krocích: rozváděčová skříň, topení,
+            chlazení a příslušenství. Na konci získáte přehled vybraných položek ke stažení jako PDF.
+          </p>
+        </div>
+
+        <div style={{ padding: "24px 32px 32px" }}>
+          <button
+            onClick={onStart}
+            style={{
+              width: "100%", padding: "18px", background: PLP_BLUE, color: "white",
+              border: "none", cursor: "pointer", display: "flex", alignItems: "center",
+              justifyContent: "center", gap: "12px", fontWeight: "900", fontSize: "12px",
+              letterSpacing: "3px", textTransform: "uppercase", fontFamily: "inherit",
+              transition: "background 0.2s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "#00257a"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PLP_BLUE; }}
+          >
+            ▶ ZAHÁJIT KONFIGURACI
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── App ──────────────────────────────────────────────────────────────────────
+const INITIAL_SEL = {
+  cabinetSize:     null,
+  base:            "N",
+  vertRails:       "N",
+  cableLeft:       "N",
+  cableRight:      "N",
+  heater:          "N",
+  thermostat:      "N",
+  heatedShelf:     "N",
+  cooling:         "N",
+  fixBracket:      "N",
+  doorSwitch:      "N",
+  ledLight:        "N",
+  undergroundBase: "N",
+};
+
+function App() {
+  const [step, setStep] = useState(0);
+  const [sel, setSel] = useState(INITIAL_SEL);
+
+  const bom = useMemo(() => buildBOM(sel), [sel]);
+
+  const canNext = step === 1 ? !!sel.cabinetSize : true;
+
+  const handleNext = () => { window.scrollTo({ top: 0, behavior: "smooth" }); setStep(s => s + 1); };
+  const handleBack = () => { window.scrollTo({ top: 0, behavior: "smooth" }); setStep(s => s - 1); };
+
+  if (step === 0) {
+    return (
+      <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "'Barlow', Arial, sans-serif" }}>
+        <Navbar />
+        <Intro onStart={() => setStep(1)} />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "'Barlow', Arial, sans-serif",
+      display: "flex", flexDirection: "column" }}>
+      <Navbar />
+      <StepIndicator currentStep={step} />
+      <div style={{ flex: 1 }}>
+        <div style={{ maxWidth: "960px", margin: "0 auto", padding: "32px 24px 24px" }}>
+          {step === 1 && <Step1 sel={sel} setSel={setSel} />}
+          {step === 2 && <Step2 sel={sel} setSel={setSel} />}
+          {step === 3 && <Step3 sel={sel} setSel={setSel} />}
+          {step === 4 && <Step4 sel={sel} setSel={setSel} />}
+          {step === 5 && <Step5 bom={bom} />}
+        </div>
+      </div>
+      <NavButtons
+        step={step}
+        onBack={handleBack}
+        onNext={handleNext}
+        onPDF={() => generatePDF(bom)}
+        canNext={canNext}
+      />
+    </div>
+  );
+}
+
+function Navbar() {
+  return (
+    <div style={{
+      background: PLP_BLUE, padding: "0 32px",
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      height: "52px", borderBottom: "3px solid rgba(255,255,255,0.15)",
+    }}>
+      <h1 style={{ margin: 0, display: "flex", alignItems: "baseline", gap: "0" }}>
+        <span style={{ fontSize: "20px", fontWeight: "900", color: "white",
+          letterSpacing: "-0.5px", textTransform: "uppercase" }}>
+          SMARTCAB SAP 4
+        </span>
+        <span style={{ fontSize: "20px", fontWeight: "900", color: "rgba(255,255,255,0.45)",
+          letterSpacing: "-0.5px", marginLeft: "8px", textTransform: "uppercase" }}>
+          KONFIGURÁTOR
+        </span>
+      </h1>
+      <div style={{
+        border: "1.5px solid rgba(255,255,255,0.4)", padding: "5px 12px",
+        color: "rgba(255,255,255,0.85)", fontSize: "9px", fontWeight: "700",
+        letterSpacing: "1.5px", fontFamily: "monospace", textTransform: "uppercase",
+      }}>
+        PLP · VENKOVNÍ ROZVÁDĚČOVÉ SKŘÍNĚ · SMARTCAB SAP 4
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
