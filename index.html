@@ -394,25 +394,12 @@ function OptionCard({ item, selected, disabled, onSelect }) {
         opacity: dim ? 0.5 : 1,
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", flex: 1, minWidth: 0 }}>
-          <span style={{ fontFamily: "monospace", fontSize: "20px", fontWeight: "900", flexShrink: 0,
-            color: active ? "white" : PLP_BLUE }}>
-            {item.code}
-          </span>
-          <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
-            <span style={{ fontWeight: "700", fontSize: "10px", letterSpacing: "1.5px",
-              textTransform: "uppercase", fontFamily: "monospace",
-              color: active ? "rgba(255,255,255,0.75)" : MID_GRAY }}>
-              {item.label}
-            </span>
-            {item.detail && (
-              <span style={{ fontSize: "10px", color: active ? "rgba(255,255,255,0.65)" : MID_GRAY }}>
-                {item.detail}
-              </span>
-            )}
-          </div>
-        </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+        <span style={{ fontWeight: "700", fontSize: "10px", letterSpacing: "1.5px",
+          textTransform: "uppercase", fontFamily: "monospace",
+          color: active ? "rgba(255,255,255,0.75)" : MID_GRAY }}>
+          {item.label}
+        </span>
         {item.sku && (
           <span style={{
             fontSize: "10px", fontWeight: "700", letterSpacing: "1px",
@@ -424,6 +411,11 @@ function OptionCard({ item, selected, disabled, onSelect }) {
           </span>
         )}
       </div>
+      {item.detail && (
+        <span style={{ fontSize: "10px", color: active ? "rgba(255,255,255,0.75)" : MID_GRAY }}>
+          {item.detail}
+        </span>
+      )}
     </button>
   );
 }
