@@ -203,9 +203,9 @@ async function generatePDF(bom) {
   doc.setTextColor(255, 255, 255);
   doc.text("SMARTCAB SAP 4", L, 11.5);
   const bw = doc.getTextWidth("SMARTCAB SAP 4");
-  doc.setFont("helvetica", "bold");
+  doc.setFont(fontName, "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text(" KONFIGURATOR", L + bw, 11.5);
+  doc.text(" KONFIGUR\u00c1TOR", L + bw, 11.5);
 
   // ── 2. Red accent line below header ──
   doc.setFillColor(228, 0, 43);
