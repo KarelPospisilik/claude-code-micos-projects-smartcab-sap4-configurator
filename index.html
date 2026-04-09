@@ -204,7 +204,7 @@ async function generatePDF(bom) {
   doc.text("SMARTCAB SAP 4", L, 11.5);
   const bw = doc.getTextWidth("SMARTCAB SAP 4");
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(180, 210, 255);
+  doc.setTextColor(255, 255, 255);
   doc.text(" KONFIGURATOR", L + bw, 11.5);
 
   // ── 2. Red accent line below header ──
@@ -906,7 +906,7 @@ function Navbar() {
           letterSpacing: "-0.5px", textTransform: "uppercase" }}>
           SMARTCAB SAP 4
         </span>
-        <span style={{ fontSize: "20px", fontWeight: "900", color: "rgba(255,255,255,0.45)",
+        <span style={{ fontSize: "20px", fontWeight: "900", color: "white",
           letterSpacing: "-0.5px", marginLeft: "8px", textTransform: "uppercase" }}>
           KONFIGURÁTOR
         </span>
