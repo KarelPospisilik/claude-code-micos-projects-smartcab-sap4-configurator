@@ -533,15 +533,15 @@ function NavButtons({ step, onBack, onNext, onPDF, canNext }) {
             disabled={!canNext}
             style={{
               padding: "13px 32px",
-              background: canNext ? PLP_BLUE : BORDER,
+              background: canNext ? "#F47920" : BORDER,
               color: canNext ? "white" : MID_GRAY,
               border: "none", cursor: canNext ? "pointer" : "not-allowed",
               fontWeight: "700", fontSize: "11px",
               letterSpacing: "2px", textTransform: "uppercase", fontFamily: "inherit",
               transition: "all 0.15s",
             }}
-            onMouseEnter={e => { if (canNext) e.currentTarget.style.background = "#00257a"; }}
-            onMouseLeave={e => { if (canNext) e.currentTarget.style.background = PLP_BLUE; }}
+            onMouseEnter={e => { if (canNext) e.currentTarget.style.background = "#c45e10"; }}
+            onMouseLeave={e => { if (canNext) e.currentTarget.style.background = "#F47920"; }}
           >
             DALŠÍ KROK →
           </button>
