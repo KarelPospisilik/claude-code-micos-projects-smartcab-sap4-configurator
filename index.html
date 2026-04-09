@@ -142,6 +142,7 @@ const UNDERGROUND_BASE = [
 
 // ── PDF font cache ────────────────────────────────────────────────────────────
 let _pdfFont = null;
+let _pdfFontBold = null;
 
 async function loadPdfFont() {
   if (_pdfFont) return _pdfFont;
@@ -156,18 +157,32 @@ async function loadPdfFont() {
   return _pdfFont;
 }
 
+async function loadPdfFontBold() {
+  if (_pdfFontBold) return _pdfFontBold;
+  const res = await fetch("https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans-Bold.ttf");
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  const chunks = [];
+  for (let i = 0; i < bytes.length; i += 8192) {
+    chunks.push(String.fromCharCode(...bytes.subarray(i, i + 8192)));
+  }
+  _pdfFontBold = btoa(chunks.join(""));
+  return _pdfFontBold;
+}
+
 // ── PDF generation ──────────────────────────────────────────────────────────
 async function generatePDF(bom) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-  // Load Unicode font (Czech support)
+  // Load Unicode fonts (Czech support — regular + bold)
   let fontName = "helvetica";
   try {
-    const b64 = await loadPdfFont();
+    const [b64, b64Bold] = await Promise.all([loadPdfFont(), loadPdfFontBold()]);
     doc.addFileToVFS("DejaVuSans.ttf", b64);
     doc.addFont("DejaVuSans.ttf", "DejaVuSans", "normal");
-    doc.addFont("DejaVuSans.ttf", "DejaVuSans", "bold");
+    doc.addFileToVFS("DejaVuSans-Bold.ttf", b64Bold);
+    doc.addFont("DejaVuSans-Bold.ttf", "DejaVuSans", "bold");
     fontName = "DejaVuSans";
   } catch(e) { /* use helvetica fallback */ }
 
@@ -188,7 +203,7 @@ async function generatePDF(bom) {
   doc.setTextColor(255, 255, 255);
   doc.text("SMARTCAB SAP 4", L, 11.5);
   const bw = doc.getTextWidth("SMARTCAB SAP 4");
-  doc.setFont("helvetica", "normal");
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(180, 210, 255);
   doc.text(" KONFIGURATOR", L + bw, 11.5);
 
@@ -205,10 +220,10 @@ async function generatePDF(bom) {
   doc.setTextColor(228, 0, 43);
   doc.text("KONFIGURACE PRODUKTU", L + 6, 30);
 
-  doc.setFontSize(11);
+  doc.setFontSize(14);
   doc.setFont(fontName, "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text("SMARTCAB SAP 4 — VENKOVNÍ ROZVÁDĚČOVÁ SKŘÍŇ", L + 6, 39);
+  doc.text("SMARTCAB SAP 4 — VENKOVN\u00cd ROZV\u00c1D\u011a\u010cOV\u00c1 SK\u0158\u00cd\u0147", L + 6, 40);
 
   // ── 4. Section title ABOVE red line ──
   let y = 56;
