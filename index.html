@@ -395,9 +395,8 @@ function OptionCard({ item, selected, disabled, onSelect }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-        <span style={{ fontWeight: "700", fontSize: "10px", letterSpacing: "1.5px",
-          textTransform: "uppercase", fontFamily: "monospace",
-          color: active ? "rgba(255,255,255,0.75)" : MID_GRAY }}>
+        <span style={{ fontWeight: "700", fontSize: "12px",
+          color: active ? "white" : DARK_GRAY }}>
           {item.label}
         </span>
         {item.sku && (
