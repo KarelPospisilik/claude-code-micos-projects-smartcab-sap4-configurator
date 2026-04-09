@@ -579,7 +579,7 @@ function Step1({ sel, setSel }) {
     <div style={{ animation: "fadeUp 0.35s ease" }}>
       <SectionLabel num={1} text="Rozváděčová skříň" />
 
-      <SubLabel text="Velikost skříně *" />
+      <SubLabel text="Velikost skříně" />
       <OptionGrid items={CABINET_SIZES} selected={sel.cabinetSize}
         onSelect={v => setSel(s => ({ ...s, cabinetSize: v }))} />
 
