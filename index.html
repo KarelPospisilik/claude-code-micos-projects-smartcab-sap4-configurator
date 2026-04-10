@@ -146,7 +146,7 @@ let _pdfFontBold = null;
 
 async function loadPdfFont() {
   if (_pdfFont) return _pdfFont;
-  const res = await fetch("https://cdn.jsdelivr.net/npm/@fontsource/inter@3.3.1/files/inter-latin-400-normal.ttf");
+  const res = await fetch("https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf");
   const buf = await res.arrayBuffer();
   const bytes = new Uint8Array(buf);
   const chunks = [];
@@ -159,7 +159,7 @@ async function loadPdfFont() {
 
 async function loadPdfFontBold() {
   if (_pdfFontBold) return _pdfFontBold;
-  const res = await fetch("https://cdn.jsdelivr.net/npm/@fontsource/inter@3.3.1/files/inter-latin-700-normal.ttf");
+  const res = await fetch("https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans-Bold.ttf");
   const buf = await res.arrayBuffer();
   const bytes = new Uint8Array(buf);
   const chunks = [];
