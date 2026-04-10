@@ -146,7 +146,7 @@ let _pdfFontBold = null;
 
 async function loadPdfFont() {
   if (_pdfFont) return _pdfFont;
-  const res = await fetch("https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf");
+  const res = await fetch("https://cdn.jsdelivr.net/npm/@fontsource/inter@3.3.1/files/inter-latin-400-normal.ttf");
   const buf = await res.arrayBuffer();
   const bytes = new Uint8Array(buf);
   const chunks = [];
@@ -159,7 +159,7 @@ async function loadPdfFont() {
 
 async function loadPdfFontBold() {
   if (_pdfFontBold) return _pdfFontBold;
-  const res = await fetch("https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans-Bold.ttf");
+  const res = await fetch("https://cdn.jsdelivr.net/npm/@fontsource/inter@3.3.1/files/inter-latin-700-normal.ttf");
   const buf = await res.arrayBuffer();
   const bytes = new Uint8Array(buf);
   const chunks = [];
@@ -179,11 +179,11 @@ async function generatePDF(bom) {
   let fontName = "helvetica";
   try {
     const [b64, b64Bold] = await Promise.all([loadPdfFont(), loadPdfFontBold()]);
-    doc.addFileToVFS("DejaVuSans.ttf", b64);
-    doc.addFont("DejaVuSans.ttf", "DejaVuSans", "normal");
-    doc.addFileToVFS("DejaVuSans-Bold.ttf", b64Bold);
-    doc.addFont("DejaVuSans-Bold.ttf", "DejaVuSans", "bold");
-    fontName = "DejaVuSans";
+    doc.addFileToVFS("Inter-Regular.ttf", b64);
+    doc.addFont("Inter-Regular.ttf", "Inter", "normal");
+    doc.addFileToVFS("Inter-Bold.ttf", b64Bold);
+    doc.addFont("Inter-Bold.ttf", "Inter", "bold");
+    fontName = "Inter";
   } catch(e) { /* use helvetica fallback */ }
 
   const t = (s) => s || "";
