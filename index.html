@@ -10,9 +10,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Barlow', Arial, sans-serif; }
+    body { font-family: 'Inter', Arial, sans-serif; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
@@ -862,7 +862,7 @@ function App() {
 
   if (step === 0) {
     return (
-      <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "'Barlow', Arial, sans-serif" }}>
+      <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "'Inter', Arial, sans-serif" }}>
         <Navbar />
         <Intro onStart={() => setStep(1)} />
       </div>
@@ -870,7 +870,7 @@ function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "'Barlow', Arial, sans-serif",
+    <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "'Inter', Arial, sans-serif",
       display: "flex", flexDirection: "column" }}>
       <Navbar />
       <StepIndicator currentStep={step} />
